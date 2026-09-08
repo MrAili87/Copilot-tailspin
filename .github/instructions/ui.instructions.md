@@ -20,6 +20,12 @@ Refer to technology-specific instruction files:
 
 ## Core Principles
 
+### Comment Philosophy
+
+- Write comments for intent, rationale, and constraints that are not obvious from the Astro/Tailwind code.
+- Avoid comments that merely narrate visible markup or utility classes.
+- Update or remove stale comments in the same change that updates the related component.
+
 ### Testability
 
 - Every interactive element MUST include a `data-testid` attribute
