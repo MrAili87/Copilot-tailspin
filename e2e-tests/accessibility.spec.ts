@@ -201,8 +201,7 @@ test.describe('Accessibility Tests', () => {
     await expect(main).toBeVisible();
   });
 
-  test('decorative SVGs should have aria-hidden attribute', async ({ page }) => {
-    await page.goto('/');
+  test('decorative SVGs should have aria-hidden attribute', async ({ page }) => {    await page.goto('/');
     await page.waitForSelector('[data-testid="games-grid"]', { timeout: 10000 });
     
     // Check menu button SVG has aria-hidden
@@ -219,5 +218,64 @@ test.describe('Accessibility Tests', () => {
     for (let i = 0; i < count; i++) {
       await expect(gameCardSvgs.nth(i)).toHaveAttribute('aria-hidden', 'true');
     }
+  });
+
+  test('filter controls should expose grouped, labelled checkboxes', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('filter-panel')).toBeVisible();
+
+    // fieldset/legend gives each checkbox group an accessible name for screen readers
+    await expect(page.getByRole('group', { name: 'Category' })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Publisher' })).toBeVisible();
+
+    const checkbox = page.getByTestId('filter-category-strategy');
+    await expect(checkbox).toHaveAccessibleName('Strategy');
+
+    // The result count must be announced when filtering changes it
+    const count = page.getByTestId('filter-result-count');
+    await expect(count).toHaveAttribute('role', 'status');
+    await expect(count).toHaveAttribute('aria-live', 'polite');
+  });
+
+  test('filter controls should be operable with the keyboard', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('filter-panel')).toBeVisible();
+
+    const checkbox = page.getByTestId('filter-category-strategy');
+    await checkbox.focus();
+    await expect(checkbox).toBeFocused();
+
+    await page.keyboard.press('Space');
+    await expect(checkbox).toBeChecked();
+    await expect(page).toHaveURL(/[?&]category=strategy/);
+
+    await page.keyboard.press('Space');
+    await expect(checkbox).not.toBeChecked();
+  });
+
+  test('filter controls should have visible focus indicators', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('filter-panel')).toBeVisible();
+
+    const clearButton = page.getByTestId('filter-clear');
+    await clearButton.focus();
+
+    const hasVisibleFocus = await clearButton.evaluate((el) => {
+      const styles = window.getComputedStyle(el);
+      return (styles.outline !== 'none' && styles.outlineWidth !== '0px') || styles.boxShadow !== 'none';
+    });
+
+    expect(hasVisibleFocus).toBeTruthy();
+  });
+
+  test('prerendered filter pages should not have accessibility violations', async ({ page }) => {
+    await page.goto('/games/category/strategy/');
+    await page.waitForSelector('[data-testid="games-grid"]', { timeout: 10000 });
+
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 });

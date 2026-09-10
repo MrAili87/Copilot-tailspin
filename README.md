@@ -12,6 +12,15 @@ Tailspin Toys is a crowdfunding platform for games with a developer theme. The p
 
 The database is migrated and seeded automatically before `dev`/`build` (via the `predev`/`prebuild` npm scripts) and is written to the gitignored `tailspin.db` file.
 
+## Filtering games
+
+The game listing on `/` can be narrowed by category and publisher:
+
+- **Interactive filters** — the home page renders a filter panel with two multi-select checkbox groups (Category and Publisher). Selections are ORed within a group and ANDed across groups. Because the site is static, every game is rendered at build time and a small scoped script toggles card visibility. The current selection is mirrored in the query string (for example `/?category=strategy,puzzle&publisher=github-games`), so filtered views are shareable and survive back/forward navigation.
+- **Prerendered single-filter routes** — `/games/category/<slug>/` and `/games/publisher/<slug>/` are generated at build time from the categories and publishers in the database. They render an already-filtered grid, so they work without JavaScript and are crawlable. The filter panel links to them from a `<noscript>` fallback.
+
+Slugs are produced by `slugify()` in `src/lib/filters.ts`. Filtering itself is handled by `getGames(db, filters)` in `src/lib/games.ts`, with `getAllCategories()` / `getAllPublishers()` supplying the filter options and static paths.
+
 ## Coding standards
 
 Repository coding standards are defined in [`.github/copilot-instructions.md`](.github/copilot-instructions.md) and the files under [`.github/instructions/`](.github/instructions/). Key expectations:

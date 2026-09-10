@@ -1,13 +1,24 @@
 ---
 import type { Game } from '../types/game';
+import { slugify } from '../lib/filters';
 import Tag from './Tag.astro';
 import ArrowRight from '../assets/icons/arrow-right.svg';
 
+/**
+ * Summary card linking to a game's detail page.
+ *
+ * @property game - Game to render, including its category and publisher relations.
+ */
 interface Props {
     game: Game;
 }
 
 const { game } = Astro.props;
+
+// Slugs are emitted as data attributes so the home page filter script can match cards
+// against the checkbox values without re-querying the database on the client.
+const categorySlug = game.category ? slugify(game.category.name) : '';
+const publisherSlug = game.publisher ? slugify(game.publisher.name) : '';
 ---
 
 <a
@@ -16,6 +27,8 @@ const { game } = Astro.props;
     data-testid="game-card"
     data-game-id={game.id}
     data-game-title={game.title}
+    data-category-slug={categorySlug}
+    data-publisher-slug={publisherSlug}
 >
     <div class="p-6 relative">
         <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

@@ -1,0 +1,124 @@
+---
+import { slugify } from '../lib/filters';
+import type { Category, Publisher } from '../types/game';
+
+/**
+ * Filter controls for the game listing.
+ *
+ * Renders two multi-select checkbox groups (categories and publishers). Selections are
+ * ORed within a group and ANDed across groups. The component ships no behaviour of its
+ * own — the page that renders it owns the client-side script — so it stays usable from
+ * any listing page.
+ *
+ * @property categories - Categories to offer, already ordered for display.
+ * @property publishers - Publishers to offer, already ordered for display.
+ * @property totalCount - Number of games rendered on the page, used for the initial count.
+ */
+interface Props {
+    categories: Category[];
+    publishers: Publisher[];
+    totalCount: number;
+}
+
+const { categories, publishers, totalCount } = Astro.props;
+
+const groups = [
+    {
+        key: 'category' as const,
+        legend: 'Category',
+        basePath: '/games/category',
+        options: categories,
+    },
+    {
+        key: 'publisher' as const,
+        legend: 'Publisher',
+        basePath: '/games/publisher',
+        options: publishers,
+    },
+];
+
+const controlClasses =
+    'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-200 transition-colors duration-200 hover:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500';
+---
+
+<section
+    class="mb-8 rounded-xl border border-slate-700 bg-slate-800/40 p-6 backdrop-blur-sm"
+    aria-labelledby="filter-panel-heading"
+    data-testid="filter-panel"
+>
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="filter-panel-heading" class="text-lg font-medium text-slate-100">Filter games</h2>
+        <div class="flex items-center gap-4">
+            <p
+                class="text-sm text-slate-300"
+                role="status"
+                aria-live="polite"
+                data-testid="filter-result-count"
+                data-total={totalCount}
+            >
+                Showing {totalCount} of {totalCount} games
+            </p>
+            <button
+                type="button"
+                class="rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 transition-colors duration-200 hover:bg-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                data-testid="filter-clear"
+            >
+                Clear filters
+            </button>
+        </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+        {groups.map((group) => (
+            <fieldset data-testid={`filter-group-${group.key}`}>
+                <legend class="mb-3 text-sm font-semibold tracking-wide text-slate-400 uppercase">
+                    {group.legend}
+                </legend>
+                <div class="flex flex-wrap gap-2">
+                    {group.options.map((option) => {
+                        const slug = slugify(option.name);
+                        const id = `filter-${group.key}-${slug}`;
+                        return (
+                            <label class={controlClasses} for={id}>
+                                <input
+                                    type="checkbox"
+                                    id={id}
+                                    name={group.key}
+                                    value={slug}
+                                    class="h-4 w-4 rounded border-slate-600 bg-slate-900 accent-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    data-filter-group={group.key}
+                                    data-testid={`filter-${group.key}-${slug}`}
+                                />
+                                <span>{option.name}</span>
+                            </label>
+                        );
+                    })}
+                </div>
+            </fieldset>
+        ))}
+    </div>
+
+    <noscript>
+        <div class="mt-6 border-t border-slate-700 pt-4">
+            <p class="mb-3 text-sm text-slate-300">
+                Interactive filtering needs JavaScript. Browse a single filter instead:
+            </p>
+            {groups.map((group) => (
+                <p class="mb-2 text-sm text-slate-300">
+                    <span class="font-semibold text-slate-400">{group.legend}:</span>{' '}
+                    {group.options.map((option, index) => (
+                        <>
+                            {index > 0 && <span aria-hidden="true"> · </span>}
+                            <a
+                                href={`${group.basePath}/${slugify(option.name)}/`}
+                                class="text-blue-400 underline hover:text-blue-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            >
+                                {option.name}
+                            </a>
+                        </>
+                    ))}
+                </p>
+            ))}
+        </div>
+    </noscript>
+</section>
