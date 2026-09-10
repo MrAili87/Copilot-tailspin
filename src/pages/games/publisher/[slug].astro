@@ -1,0 +1,53 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Layout from '../../../layouts/Layout.astro';
+import GameCard from '../../../components/GameCard.astro';
+import PageHero from '../../../components/PageHero.astro';
+import EmptyState from '../../../components/EmptyState.astro';
+import { getDatabase } from '../../../lib/db';
+import { getAllPublishers, getGames } from '../../../lib/games';
+import { slugify } from '../../../lib/filters';
+
+export const prerender = true;
+
+export const getStaticPaths = (async () => {
+  const publishers = await getAllPublishers(getDatabase());
+  const seen = new Set<string>();
+
+  return publishers.map((publisher) => {
+    const slug = slugify(publisher.name);
+    // Fail the build rather than silently dropping a route if two names collide.
+    if (seen.has(slug)) {
+      throw new Error(`Duplicate publisher slug "${slug}" generated from "${publisher.name}".`);
+    }
+    seen.add(slug);
+
+    return { params: { slug }, props: { publisher } };
+  });
+}) satisfies GetStaticPaths;
+
+const { publisher } = Astro.props;
+const games = await getGames(getDatabase(), { publisherIds: [publisher.id] });
+---
+
+<Layout title={`Games by ${publisher.name} - Tailspin Toys`}>
+  <div class="py-8">
+    <PageHero title={`Games by ${publisher.name}`} subtitle={`Titles published by ${publisher.name}.`}>
+      <a
+        href="/"
+        class="mt-4 inline-block text-blue-400 underline hover:text-blue-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        data-testid="back-to-all-games"
+      >
+        Back to all games
+      </a>
+    </PageHero>
+
+    {games.length === 0 ? (
+      <EmptyState text={`No games from ${publisher.name} yet.`} />
+    ) : (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="games-grid">
+        {games.map((game) => <GameCard game={game} />)}
+      </div>
+    )}
+  </div>
+</Layout>
